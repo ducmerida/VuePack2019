@@ -32,6 +32,7 @@ namespace VuePack
         public ITextDocumentFactoryService TextDocumentFactoryService { get; set; }
 
         public static Regex ElementRegex { get; } = new Regex("Vue\\.(elementDirective|component)\\(('|\")(?<name>[^'\"]+)\\2", RegexOptions.Compiled);
+        public static Regex RegisteredComponentRegex { get; } = new Regex("components\s*\n*:\s*\n*\{\s*\n*((?<component>\w*),*\s*\n*)*\}\s*\n*", RegexOptions.Compiled);
 
         public static Regex AttributeRegex { get; } = new Regex("Vue\\.(directive)\\(('|\")(?<name>[^'\"]+)\\2", RegexOptions.Compiled);
 
@@ -107,6 +108,12 @@ namespace VuePack
                 // Elements
                 IEnumerable<Match> elementMatches = ElementRegex.Matches(content).Cast<Match>();
                 _elements[file] = elementMatches.Select(m => m.Groups["name"].Value).ToArray();
+                
+                //Registered components
+                IEnumerable<Match> registeredComponentMatches = RegisteredComponentRegex.Matches(content).Cast<Match>();
+                string[] registeredComponentNames = registeredComponentMatches.Select(m => m.Groups["name"].Value).Where(ms => !String.IsNullOrEmpty(ms)).ToArray();
+                _elements[file] = _elements[file].Concat(registeredComponentNames)
+                                    .Concat(registeredComponentNames.Select(ToKebabCase));//Propose components with kebab-case
 
                 // Attributes
                 IEnumerable<Match> attributeMatches = AttributeRegex.Matches(content).Cast<Match>();
@@ -153,6 +160,19 @@ namespace VuePack
             catch { }
 
             return files;
+        }
+        
+        private static string ToKebabCase(string value)
+        {
+            if (string.IsNullOrEmpty(value))
+                return value;
+            Regex.Replace(
+                value,
+                "(?<!^)([A-Z][a-z]|(?<=[a-z])[A-Z])",
+                "-$1",
+                RegexOptions.Compiled)
+                .Trim()
+                .ToLower();
         }
     }
 
