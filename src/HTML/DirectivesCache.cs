@@ -166,7 +166,7 @@ namespace VuePack
         {
             if (string.IsNullOrEmpty(value))
                 return value;
-            Regex.Replace(
+            return Regex.Replace(
                 value,
                 "(?<!^)([A-Z][a-z]|(?<=[a-z])[A-Z])",
                 "-$1",
